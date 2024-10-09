@@ -1,0 +1,329 @@
+---
+title: 'Laboration 2: Absorberande Markovkedjor'
+author: "Nabiel Efrem"
+date: 2022-02-27
+output:
+  html_document:
+    df_print: paged
+---
+
+# Introduktion av laborationen 2
+Syftet med laboration 2 är att granska populära kasinot Rodmans Roulette utifrån två fiktiva personer, Kim och Robin. Personerna ifråga har olika spelstrategier där Kim är en stamkund med en odjärv spelstrategi medan Robin besöker kasinot ibland och har således en djärvare spelstrategi. Sannolikheten att vinna sin tvåfaldiga insats har symboliserats med sannolikheten ”p” och sannolikheten att individen förlorar insatsen har symbolen ”q” som är lika med "1-p". Detta på grund av den fundamentala satsen om total sannolikhet där p + q = 1 = 100%. 
+
+# Definiera hjälpfunktioner för uppgift 2c 
+För uppgift 2c har man som mål att ta ut matrisen SR när matrisen Pn används som input i funktionen. I laborationen möjliggörs detta genom att ta del av två stycken hjälpfunktioner tagna från laboration 1 enligt nedan: 
+```{r}
+# Denna funktion räknar ut matrisen A upphöjt till n, enligt den iterativa 
+# definitionen A^n = A %*% A %*% ... %*% A (n stycken A), med A^0 = I.
+# Exempel: mpow(A, 3) == A %*% A %*% A
+mpow <- function(A, n) {
+  resultat <- diag(nrow(A)) 
+  potens <- n
+  while (potens > 0) {
+    resultat <- A %*% resultat
+    potens <- potens - 1 
+  }
+  return(resultat) 
+}
+
+
+# Låt A och B vara matriser innehållandes sannolikheter. Denna funktion testar
+# om elementen A är identiska, upp till de d första decimalerna, med motsvarande
+# element i matrisen B.
+# Funktionen returnerar TRUE om matriserna är identiska; FALSE annars.
+matrices_equal <- function(A, B, d = 4) {
+  A_new <- trunc(A * 10^d) 
+  B_new <- trunc(B * 10^d) 
+  if (all(A_new == B_new)) {
+    return(TRUE) 
+  } else {
+    return(FALSE)
+  }
+}
+
+```
+Dessa funktioner definieras redan här för att tydliggöra sammankopplingen mellan laboration 1 och laboration 2. Specifikt för aktuell deluppgift 2c. Vid utnyttjandet av dessa funktioner kommer en sidokommentar dessutom att tillämpas för tydlighetens skull mha (#). 
+
+Sidokommentar: Hjälpfunktionerna tillkommer med en kortare beskrivning ovan. Beskrivningen är tagen direkt från Laboration 1: Irreducibla Markovkedjor (Author: Benjamin Kjellson, date: 2016-05-26, heading: Funktioner för laboration 1, page: 2). Vi kan se hur mpow() innehåller två stycken funktionsargument, A för matris och n för antalet matrismultiplikationer vi önskar av matris A. matrices_equal() kollar om två stycken matriser är identiska, returnerar TRUE, eller inte, returnerar FALSE. Detta sker med ”d” decimalers noggrannhet. 
+
+
+
+# Uppgift 1
+Uppgift 1 är uppdelad i tre olika delar där samtliga tre delar grundar sig antingen direkt eller indirekt på den definierade hjälpfunktionen vid namn en_spelomgang() och definieras därmed enligt nedan: 
+```{r}
+en_spelomgang <- function(p, kapital)  { # där p är vinstsannolikheten och K är input för spelandet
+  if (runif(1, min = 0, max = 1) < p) { # inkludera argumentet för den övre och undregränsen som är på defualt
+    return(kapital + 1)
+  } else {
+    return(kapital - 1)
+  }
+}
+```
+Hjälpfunktionen tar del av vinstsannolikheten "p" och startkapitalet "kapital" som argument och har det nya kapitalet efter en spelomgång som output.
+
+# Uppgift 1a
+I deluppgiften 1a ska en funktionen vid namn kim_spelar() framställas med hjälp av en_spelomgang() som definerats ovan. kim_spelar() ska kunna simulera Kims spelande med samma funktionsargumenten som en_spelomgang() har. Funktionen ska returnera en 1:a genom return(1) när Kim nått fram till 5kr och returnera en 0:a genom return(0) när Kim når 0 kr.
+```{r}
+kim_spelar <- function(p, kapital) {
+  while ((0 < kapital & kapital < 5) == TRUE ) { # while loop för transienta tillstånd inom ett diskret tillståndsrum 
+    kapital <- en_spelomgang(p, kapital) # håller koll på det nuvarance 
+  }
+  if (kapital == 0) {return(0)} # första absorberande tillståndet och returerar noll om villkoret är uppfyllt 
+  if (kapital == 5) {return(1)} # andra absorberande tillståndet och returerar ett om villkoret är uppfyllt
+}
+```
+Här har vi valt att definiera en tillfällig variabel som håller koll på det nuvarande kapitalet som har fått namnet ”kapital” med respekt till utfallet från en_spelomgang. Funktionen loopar inne i en while loop så länge det nuvarande kapitalet är inom intervallet (0 < kapital < 5) vilket överensstämmer med (1 ≤ kapital ≤ 4) eftersom att det är ett diskret tillståndsrum. När kapitalet hamnar utanför loop-intervallet ställs kapitalet för två stycken möjliga if-statements med olika returnerade värden. 
+
+# Uppgift 1b 
+För 1b ska vi skriva en simuleringsfunktion för Kims spelande där funktionen tar sig an inputen ”n”, där n står för antalet spelomgångar. Funktionen, som har fått namnet sim_kim(), har antalet vinster som output dvs antalet gånger av n st försök där Kim nått kapitalet 5 kr. Vi kan även räkna ut antalet förluster genom antalet vinster avdraget från n st spelomgångar vilket vi valde att göra som sidoinformation för analysen.  
+```{r}
+set.seed(990421) # set.seed med 6-siffriga personnummer 
+
+sim_kim <- function(p = 0.5, kapital = 1, n = 1000) {
+  antal.vinster <- 0
+  for ( i in 1:n ) {
+    antal.vinster <-  kim_spelar(p, kapital) + antal.vinster
+  }
+  antal.forluster <- n - antal.vinster
+  return(list("Antal vinster" = antal.vinster, "Antal förluster" = antal.forluster))
+}
+sim_kim()
+```
+Givet att Kim startar med 1 krona i kapital, vinstsannolikheten är lika med p=0.5 och sekvensen av slumpen är sätt till set.seed(990421) blir antalet vinster lika med 195 st av n = 1000 spelomgångar för Kim och 805 st förluster. 
+
+
+# Uppgift 1c
+I denna deluppgift ska vi analysera hur frekvensen av antalet vinster och antalet förluster förändras beroende på vad startkapitalet "k" är. Funktionen enligt nedan tar del av sim_kim och dess defualt-argument, från tidigare deluppgift, som är satta till vinstsannolikhet p = 0.5, antalet spelomgångar n = 1000 och ett startkapital på k = 1. 
+
+I funktionen låter vi två första funktionsargumenten, p och n, vara konstanta på sina defualt-värden medan vi ökar k = 1 med en enhet upp till och med värdet 4 och sammankopplar respektive resultat meha binda ihop raderna. Vi har valt att göra en generell funktion för denna delfråga ifall det visar sig att funktionen är nödvändig inför framtida deluppgifter i laborationen.   
+```{r}
+startpunkter <- function(k = 1) {
+  set.seed(990421)
+  dataramen <- rbind(sim_kim(k = k), sim_kim(k = k +1), sim_kim(k = k + 2),sim_kim(k = k + 3))
+  rownames(dataramen) <- c(1:4)
+  return(dataramen)
+}
+startpunkter()
+```
+Här kan man se hur frekvensen och sannolikheten för Kim att kunna vinna beror på startkapital, vinstsannolikheten och avståndet från startkapitalet till det absorberande tillstånden N = 5. Med hänvisning till ( Ross, Sheldon M. Introduction to Probability Models. 12th Edition. Page: 234-235) kan vi se hur sannolikheten att Kim vinner, N = 5, följer nedanstående sannolikhetsfunktion med utebliven härledning:
+
+$$
+p_{i}=\left\{\begin{array}{l}
+\frac{1-(q / p)^{i}}{1-(q / p)^{N}} \quad if \quad p \neq 1 / 2 \\
+i / N \quad \quad if \quad  p=1 / 2
+\end{array}\right.
+$$
+
+Ovanstående sannolikhetsfunktion kan omvandlas till nedanstående sannolikhetsfunktion genom att ersätta "i" med startkapital "k" och N med det absorberande vinsttillståndet som är "5" så får vi istället sannolikhet att vinna för olika startkapital beroende på om vinstsannolikheten är p = 0.5 eller p ≠ 0.5: 
+$$
+p_{k}=\left\{\begin{array}{l}
+\frac{1-(q / p)^{k}}{1-(q / p)^{5}} \quad if \quad p \neq 1 / 2 \\
+k / 5 \quad \quad if \quad  p=1 / 2
+\end{array}\right.
+$$
+Sannolikheten att vinna är således den specifika startpunkten dividerat med slutpunkten för vinst när vinstsannolikheten är lika med p=0.5 vilket vinstsannolikheten är för denna uppgift. 
+
+
+# Uppgift 2
+För uppgift 2 ska vi undersöka Kims sannolikhet att vinna men med en liten annorlunda approach till problemet jämfört med innan. Under uppgift 2 kommer fokuset istället vara på rekurrenta/absorberande tillstånd i tillståndsrummet {0,5} som därefter delas upp i ett rekurrenttillstånd för vinst och rekurrenttillstånd för förlust när antalet spelomgångar teoretiskt går mot oändligheten dvs (n → ∞)
+
+Övergångsmatrisen P kan skrivas i standardform enligt följande:
+$$
+P = \left[\begin{array}{ll}
+\mathbb{P}_{t} & \mathbb{R} \\
+0 & \mathbb{P}_{r}
+\end{array}\right]
+$$
+Övergångsmatrisen P i standardform består av matriserna Pt, R och Pr där R är en matris med övergångssannolikheter från transienta till rekurrenta tillstånd. Pr är övergångssannolikheter från rekurrenta till rekurrenta tillstånd medan Pt är övergångssannolikheter från transienta till transienta tillstånd. Pr kan skrivas om till en enhetsmatris med dimenstionerna motsvarande antalet rekurrenta tillstånd I(rxr) eftersom att sannolikheterna längst med huvuddiagonalen är lika med 1 = 100% och nollor för resterande elementen. 
+
+När n går mot oändligheten blir det teoriskt sätt oändligt med matrismultiplikationer tills att sannolikheten från ett transient till ett annat transient tillstånd blir lika med noll samtidigt som R konvergerar mot SR enligt nedanstående omskrivning:
+$$
+\mathbb{P}=\left[\begin{array}{ll}
+\mathbb{P}_{t} & \mathbb{R} \\
+0 & \mathbb{P}_{r} = \mathbb{I}_{r}
+\end{array}\right]
+$$
+$$
+\mathbb{P}^{2}=\left[\begin{array}{ll}
+\mathbb{P}_{t} & \mathbb{R} \\
+0 & \mathbb{I}_{r}
+\end{array}\right]\left[\begin{array}{ll}
+\mathbb{P}_{t} & \mathbb{R} \\
+0 & \mathbb{I}_{r}
+\end{array}\right]=\left[\begin{array}{cc}
+\mathbb{P}_{t}^{2} & \mathbb{P}_{t} \mathbb{R}+\mathbb{R} \\
+0 & \mathbb{I}_{r}
+\end{array}\right]
+$$
+$$
+\mathbb{P}^{3}=\left[\begin{array}{cc}
+\mathbb{P}_{t}^{2} & \mathbb{P}_{t} \mathbb{R}+\mathbb{R} \\
+0 & \mathbb{I}_{r}
+\end{array}\right] \left[\begin{array}{ll}
+\mathbb{P}_{t} & \mathbb{R} \\
+0 & \mathbb{I}_{r}
+\end{array}\right] = \left[\begin{array}{cc}
+\mathbb{P}_{t}^{3} & \mathbb{P}_{t}^{2} R+\mathbb{P}_{t} \mathbb{R}+R \\
+0 & \mathbb{I}_{r}
+\end{array}\right]
+$$
+$$
+\mathbf{P}^{n} \rightarrow\left(\begin{array}{cc}
+0 & \mathbf{S R} \\
+0 & \mathbf{I}
+\end{array}\right) \quad för \quad n → ∞ \quad   
+$$
+
+# Uppgift 2a 
+SR(txr) är en övergångsmatris där transienta tillstånd motsvarar varje rad och rekurrenta tillstånd motsvarar varje kolumn, i första kolumnen har vinsttillståndet (N=5) placerats medan förlusttillståndet (N=0) har placerats i andra kolumnen. Startkapitalet k=1 är det första transienta tillståndet och befinner sålunda i första raden vilket gör att sannolikheten för Kim att vinna under villkoret att hon startat med k=1 kr finner man i matriselementet SR(t=1, r=1) = SR(1,1) 
+
+
+# Uppgift 2b 
+Uppgift 2b grundar sig på att skapa en funktion vid namn kims_matris med vinstsannolikhet p och ger övergångssannolikheten som output vid respektive vinstsannolikhet. Vi blir tilldelade en 6x6 matris med samtliga element lika med noll och funktionen ska sålunda ta del av matrisen men omvandla specifika element utifrån värdet på "p" till nedanstående övergångsmatris: 
+$$
+P=\left(\begin{array}{lllll}
+1 & 0 & 0 & 0 & 0 & 0 \\
+q & 0 & p & 0 & 0 & 0\\
+0 & q & 0 & p & 0 & 0\\
+0 & 0 & q & 0 & p & 0\\
+0 & 0 & 0 & q & 0 & p\\
+0 & 0 & 0 & 0 & 0 & 1 
+\end{array}\right)
+$$
+Xn motsvarar en markovkedja på tillsutrymmet {0,1,2,3,5} där överångssanolikheterna är Pi,i+1 = p och Pi,i-1 = q = 1-p. 
+"i" är inom området av {0 < i < N=5} inom ett diskretutfallsrum vilket kan omvandlas till  {1 ≤ i ≤ 4}, både Xn = 0 och Xn = 5 är absorberade tillstånd för Xn vilket innebär att P00 = P55 = 1 = 100%. 
+```{r}
+kims_matris <- function(p) {
+  
+  org.matris <- matrix(c(rep(0, times = 6*6)), nrow = 6, ncol = 6, byrow = TRUE) 
+  diag(org.matris)[1] <- 1
+  diag(org.matris)[ncol(org.matris)] <- 1
+  
+  for (i in 2:5) {
+    org.matris[i, i -1] <- c(1-p) # q = 1-p 
+    org.matris[i, i +1 ] <- c(p)
+  }
+  return(org.matris)
+}
+```
+Sidokommentar: Vi valde att definiera Kims övergångsmatris genom att först skapa en tom matris vid namn org.matris för att sedan ta del av en for-loop för att få in ”p”, ”1-p”, samt 1 = 100% för rätt element i Kims matris. I Laboration 2: Absorberande Markovkedjor (Author: Benjamin Kjellson, date: 2016-05-26, heading: Uppgift 2(b), page: 3-4) blev vi tilldelade ett kodskelett där vi manuellt kunde applicera in rätt värden. Vi ansåg att den kims_matris() och for-loopen som vi använde oss av var att föredra framför kodskelett då det minskar risken för manuella misstag. 
+
+# Uppgift 2c
+I uppgift 2c ska vi skapa en funktion hitta_sr() som tar sig an en övergångsmatris P i standardform för att sedan plocka ut SR matrisen från övergångsmatrisen Pn då n går mot oändligheten och är konvergerad. 
+```{r}
+hitta_sr <- function(P) {
+  
+  rowmatris = matrix(0, nrow = nrow(P), ncol = ncol(P))
+  colmatris = matrix(0, nrow = nrow(P), ncol = ncol(P))
+  n = 1 
+  
+  for ( j in 1:c(ncol(P)-1)) {
+    
+    for ( i in 1:c(nrow(P)-1)) {
+      
+      rowmatris[i,] <- P[i + 1, ]
+    }
+    
+    colmatris[,j] <- rowmatris[,j + 1]
+  }
+  Matrismult <- mpow(colmatris, n) # hjälpfunktion från laboration 1 för matrismultiplikation
+  Matrismult1 <- mpow(colmatris, n + 1)
+  
+  while (matrices_equal(Matrismult, Matrismult1, 4) !=TRUE){ # hjälpfunktion från laboration 1  
+    n = n + 1
+    Matrismult <- Matrismult1
+    Matrismult1 <- mpow(colmatris, n+1)
+    
+  }
+  Resultat <- mpow(colmatris, n)[1:4, 5]
+  Resultat <- ceiling(Resultat * 1000)
+  
+  return(Resultat)
+}
+hitta_sr(P = kims_matris(0.5))
+
+```
+hitta_sr() visar den teoriska sannolikhetsfunktionen för en absorberad markovkedja vid två rekurrenta tillstånd {0,5} och fyra transienta tillstånd {1,2,3,4}. Den teoriska sannolikhetsfunktionen att individen vinner och når tillståndet N = 5 tillkommer perfekt med ekvationen P = k/N där k utgör startkapitalet och N utgör vinsttillståndet. Detta resultatet har samma kännetecken med resultatet från 1c men med en liten avvikelse i 1c-resultatet. Finns ingen entydlig anledning till avvikelsen men vi tror att det kan bero på sekvensen av slumpmässighet i set.seed(990421) och runif(1, min = 0, max = 1) som användes till testet. 
+
+Enligt outputen "borde" det sluta lyckligt för Kim 200 ggr av 100 när startkapitalet var k=1, 400 ggr av 100 när k = 2, 600 ggr av 1000 när k = 3 och 800 ggr av 1000 när k = 4 i uppgift 1(c).  
+
+
+# Uppgift 3
+För uppgift 3 ska vi se hur sannolikheten att nå det absorberande tillståndet N = 5 varierar beroende på hur vinstsannolikheten förändras. Härmed släpper vi på antagandet att populära kasinot Rodmans Roulette drivs utan vinstsyfte och vinstsannolikheten p sträcker sig nu inom intervallet p = {0.3, 0.4, 0.5, 0.6, 0.7}.
+
+Funktionen, som tar fram chansen för att Kim vinner från startkapitalet k = 1 för olika vinstsannolikheter, använder sig att defualtvärderna i inputen för sim_kim()-funktionen och hitta_sr()-funktionen. Simuleringsfunktion() gör intervallet av vinstsannolikheter till en vektor för att sedan använda sig av en indexerad "for loop" så att simuleringen och avläsningen av SR ska ske för rätt vinstsannolikhet p[i].
+```{r}
+set.seed(990421) # set.seed med 6-siffriga personnummer 
+Vinstsannolikhet = seq(0.3, 0.7, by = 0.1)
+
+simuleringsfunktion <- function(vektor = Vinstsannolikhet, matrisen = kims_matris) {
+  
+  sim_P <- c()
+  SR_P <- c()
+  persondf <- c()
+  
+  for (i in 1:length(vektor)) {
+    
+    sim_P[i] = as.vector(unname(sim_kim(Vinstsannolikhet[i])[1]))
+    
+    SR_P[i] = as.vector(unname(hitta_sr(P = matrisen(Vinstsannolikhet[i]))))[1]
+
+  }
+  
+  persondf <- data.frame(cbind(Vinstsannolikhet = as.numeric(vektor)*100, sim_P = as.numeric(sim_P)/1000, SR_P = SR_P/1000))
+  
+  return(persondf)
+  
+}
+kims_df <- data.frame( simuleringsfunktion())
+
+names(kims_df) <- c("Vinstsannolikhet %","$\\mathbb{P}(X_\\infty = 5)$ enligt simulering", "$\\mathbb{P}(X_\\infty = 5)$ avläst i $\\mathbf{SR}$")
+
+knitr::kable(kims_df, digits = 4, caption = "Tabell 3: Sannolikheten för Kim att nå absorberande tillståndet N=5 för olika vinstssannolikheter genom simulering och matrisen SR")
+```
+Tabell 3 påvisar hur simuleringssannolikheten och sannolikheten enligt SR-matrisen är som mest träffsäker vid låga vinstsanolikheter och tenderar att procentuellt avvika mer för högre vinstsannolikheter. Detta ger grund för relationen mellan vinstsannolikheten p och antalet spelomgångar n som krävs för en konvergens att ske. Vid samtliga vinstsannolikheter avviker simuleringen från det teoretiska utfallet, detta kan bero på att i teorin går n mot oändligheten så en mer träffsäker simulering kan förväntas vid stigande n-värden.
+
+
+# Uppgift 4
+Inom uppgift 4 analyserar vi en annan fiktiv person vid namn Robin, hen är ingen stamkund på kasinot Rodmans Roulette som Kim var men besöker kasinot ibland. Robin tar del av en annan spelstrategi jämfört med Kim då hens spelstrategi är djärvare men likt Kim har Robin startkapitalet k = 1 och anser sig ha vunnit vid tillståndet N = 5 kr. Robins spelstrategi är att han satsar allt sitt kapital när han 1 kr eller 2 kr men när Robin i stället har 3 kr eller 4 kr i kapital kommer Robin att sats det mängden i kapital som får han upp till det absorberande vinsttillståndet 5 kr. Så om Robin har 3 kr satsar han 2 kronor av dessa 3 kr för att möjliggöra 5 kr vid vinstutfall och om Robin har 4 kr satsar han 1 kr av dessa 4 kr för att kunna komma upp till 5 kr. 
+
+
+# Uppgift 4a
+Här skapar vi en funktion vid namn robins_matris() för att beskriva hur Robins kapital utvecklas med tiden, antalet spelomgångar, i en övergångsmatris. Funktionen tar sig an inputen vinstsannolikheten "p" och returnerar Robins övergångsmatris.
+```{r}
+robins_matris <- function(p) {
+  
+  q <- c(1-p)
+
+  matrisen <- matrix(c(1, 0, 0, 0, 0, 0,
+                       q, 0, p, 0, 0, 0,
+                       q, 0, 0, 0, p, 0,
+                       0, q, 0, 0, 0, p,
+                       0, 0, 0, q, 0, p,
+                       0, 0, 0, 0, 0, 1), nrow = 6, ncol = 6, byrow = TRUE)
+  
+  return(as.matrix(matrisen))
+}
+```
+Sidokommentar: När vi definierade Kims övergångsmatris (Hänvisning till ”Uppgift 2b”) tog vi del av kims_matris() med vinstsannolikheten ”p” som input samt en for-loop. Nu när vi definierar Robins övergångsmatris valde vi att ta kodskelettet från Laboration 2: Absorberande Markovkedjor (Author: Benjamin Kjellson, date: 2016-05-26, heading: Uppgift 2 (b), page: 4) och manuellt byta från 0 till p samt q = 1-p vid elementen som motsvarar Robins spelstrategi. 
+
+
+# Uppgift 4b
+I 4b ska vi ta ut och analysera SR från Robins övergångsmatris för att se hur Robins chanser att vinna, det vill säga nå N = 5, förändras för olika värden på vinstsannolikheter p. Resultatet presenteras och analyseras enligt nedan för att slutligen dra en slutsats ifall siffrorna talar för eller emot Robin djärva spelstrategi jämfört med Kims försiktigt spelstrategi: 
+```{r}
+RobinSR <- data.frame( simuleringsfunktion(vektor = Vinstsannolikhet, matrisen = robins_matris ))[3]
+
+KimSR <- data.frame( simuleringsfunktion(vektor = Vinstsannolikhet, matrisen = kims_matris ))[3]
+
+CompareSR <- data.frame(Vinstsannolikhet = as.numeric(Vinstsannolikhet)*100, RobinSR, KimSR)
+
+names(CompareSR) <- c("Vinstsannolikhet %", "$\\mathbb{P}(X_\\infty = 5)$ avläst för Robins SR", "$\\mathbb{P}(X_\\infty = 5)$ avläst för Kims SR")
+
+knitr::kable(CompareSR, digits = 4, caption = "Tabell 4: Sannolikheten för Kim och Robin att nå N = 5 genom att avläsa respektive SR-matris")
+```
+Slutsatsen som kan dras utifrån siffrorna i tabell 4 är att Kims försiktiga spelstrategi är att föredra när vinstsannolikheten är överstigande 50% dvs p > 0.5 men för vinstsannolikheter understigande 50% dvs p < 0.5 talar tabellen istället för Robins djärva spelstrategi. När vinstsannolikheten däremot är lika med p = 0.5 är chansen för vinst densamma mellan de två olika spelstrategierna alltså när p = 0.5 finns det ingen spelstrategi som bör föredras framför den andra. 
+
+Vi får inte glömma att denna slutsats om vilken spelstrategi som är att föredra för olika vinstssannolikheter "p" är baserad på n = 100 spelomgångar och med sekvens av slumpmässighet satt till set.seed(990421)
+
+Sidkommentar: Värt att notera är att samtliga kasinon är vinstdrivande och spelaren ifråga har således en vinstssannolikhet på p < 0.5 = 50%. Detta innebär att fastän vi kan föredra Robins djärva spelstrategi framför Kims kan vi inte förvänta oss ett vinstutfall för Robin.
+

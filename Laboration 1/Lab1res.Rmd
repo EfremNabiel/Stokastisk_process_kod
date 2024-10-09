@@ -1,0 +1,325 @@
+---
+title: 'Laboration 1: Irreducibla Markovkedjor'
+author: "Nabiel Efrem"
+date: '2022-03-17'
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+# Introduktion av laborationen 1
+Målet med laboration 1 är undersöka egenskaperna hos en diskret markovkedja. Laborationen delas upp i 4 olika frågor där majoriteten av frågorna innehåller två eller fler delfrågor. Vi har blivit tilldelade hjälpfunktioner i inledningsfasen av laborationen för att lyckas lösa uppgifterna, hjälpfunktionerna har ett stort fokus på upprepande matrismultiplikationer och konvergensegenskaper, en mer specifik beskrivning kommer längre fram i rapporten. Röda tråden längst med hela laboration är matrisen P som definieras nedan, mha övergångsmatrisen P och andra funktionsargument kommer vi mer detaljerat undersöka vilken typ av information som ”gömmer sig” bakom elementen i P. Detta sker genom programspråket R och dess integrerade utvecklingsmiljö Rstudio.
+
+# Definiera funktioner för laboration 1 
+Följande tre funktioner definieras i rapportens inledningsfas för att slippa anges längre fram i rapporten. Samtliga funktioner har olika egenskaper och en sammanfattad beskrivning för vardera funktioner går att hitta ovanför koden utifrån Benjamin Kjellson ("Laboration 1: Irreducibla Markovkedjor", 2016-05-26) samt under självaste kodstycket.
+```{r}
+# Denna funktion räknar ut matrisen A upphöjt till n, enligt den iterativa 
+# definitionen A^n = A %*% A %*% ... %*% A (n stycken A), med A^0 = I.
+# Exempel: mpow(A, 3) == A %*% A %*% A
+mpow <- function(A, n) {
+  resultat <- diag(nrow(A)) 
+  potens <- n
+  while (potens > 0) {
+    resultat <- A %*% resultat
+    potens <- potens - 1 
+    }
+  return(resultat) 
+}
+
+
+# Låt A vara en matris innehållandes sannolikheter. Denna funktion testar om
+# raderna i A är identiska upp till de d första decimalerna. Som ett exempel,
+# talet 0.12309 är lika med 0.12301 upp till den fjärde decimalen, men avrundat
+# till 4 decimaler är dessa tal ej lika.
+# Funktionen returnerar TRUE om raderna är identiska; FALSE annars.
+rows_equal <- function(A, d = 4) {
+  A_new <- trunc(A * 10^d) 
+  for (k in 2:nrow(A_new)) {
+  if (!all(A_new[1, ] == A_new[k, ])) {
+    return(FALSE) } 
+    }
+  return(TRUE) 
+}
+
+
+# Låt A och B vara matriser innehållandes sannolikheter. Denna funktion testar
+# om elementen A är identiska, upp till de d första decimalerna, med motsvarande
+# element i matrisen B.
+# Funktionen returnerar TRUE om matriserna är identiska; FALSE annars.
+matrices_equal <- function(A, B, d = 4) {
+  A_new <- trunc(A * 10^d) 
+  B_new <- trunc(B * 10^d) 
+  if (all(A_new == B_new)) {
+    return(TRUE) 
+    } else {
+      return(FALSE)
+    }
+}
+```
+mpow(A, n) har n och A som funktionsargument där n är exponenten för övergångsmatrisen A, matrismultiplikation för matrisen A är utförd med R-kommandot (%*%). För mpow(A, n = n) blir det generellt att funktionen har outputen mpow(A, n) == A1 %% A2 %% ... %% An och funktionen tar hänsyn till att matrisen A redan innehåller övergången en tidsenhet fram så att när n = 1 i mpow() blir utfallet den ursprungliga övergångsmatrisen A. 
+
+rows_equal() har övergångsmatrisen "A" och antalet decimaler som avrundning "d" som funktionsargument för att sedan returnera TRUE eller FALSE beroende på om raderna är identiska eller inte. Alltså returnerar funktionen return(TRUE) när raderna är identiska och annars return(FALSE) sätt till "d" decimalers noggrannhet.
+
+matrices_equal() har matrisen A och matrisne B samt antalet decimaler som avrundning "d" som funktionsargumnet. Outputen för funktionen är att returnera TRUE när A och B är identiska med "d" st decimalers noggrannhet och annars returnera FALSE. 
+
+Kantnotering: row_equal() och matrices_equal() är funktionerna som kommer ligga till grund för att studera konvergergensegenskaperna hos matrisen P i uppgift 2a. I denna laboration fokuserar vi främst på två stycken konvergergensegenskaper. Första egenskapen är att radvektorerna i en konvergerad matris ska vara identiska vilket är uppfyllt när rows_equal() returnerar TRUE. Andra egenskapen är att se ifall matrisen är oförändrad vid fler matrismultiplikationer vilket sker när matrices_equal() == TRUE givet att matriserna A och B härstammar båda från matrisen P men skiljer sig åt med en matrismultiplikation. 
+
+
+# Uppgift 1
+I uppgift 1 ska vi undersöka Kaffeautomaten på Institutionen för Experimentell Ekonomi. Automaten är i viss mån defekt och bristfälligheten kan beskrivas i en fem gradig skala från 0 som är "icke-fungerande automat" och 5 som är "felfri automat". Olika graderna i bristfällighet över en tidpunkt appliceras in i övergångsmatrisen $\mathbf{P}$ med övergångssannolikheterna $p_{i j}$ utifrån formeln för övergångssannolikhet som är $p_{i j}(n)=P\left(X_{n+1}=j \mid X_{n}=i\right)$. Maskinens olika diskreta tillstånd över diskret tid kan således beskrivas i en Markovkedja vars övergångsmatris $\mathbf{P}$ blir: 
+$$
+\mathbf{P}=\left(\begin{array}{cccccc}
+0 & 0 & 0 & 0.5 & 0 & 0.5 \\
+0.1 & 0.1 & 0 & 0.4 & 0 & 0.4 \\
+0 & 0.2 & 0.2 & 0.3 & 0 & 0.3 \\
+0 & 0 & 0.3 & 0.5 & 0 & 0.2 \\
+0 & 0 & 0 & 0.4 & 0.6 & 0 \\
+0 & 0 & 0 & 0 & 0.4 & 0.6
+\end{array}\right)
+$$
+Vi valde att definiera matrisen $\mathbf{P}$ i R genom
+```{r}
+P <- matrix(c(0,0,0,.5,0,.5,.1,.1,0,.4,0,.4,0,.2,.2,.3,0,.3, 0,0,.3,.5,0,.2, 
+              0,0,0,.4,.6,0,0,0,0,0,.4,.6), ncol = 6, nrow = 6, byrow = T)
+
+P
+```
+Sidokommentar: På sida 3 i Laboration 1: Irreducibla Markovkedjor, skriven av Benjamin Kjellson (date: 2016-05-26) blev vi tilldelade instruktioner i form av ett kodstycke för att definiera övergångsmatrisen P i R. Vid tillämpning av koden blev utfallet inkorrekt och av den anledningen valde vi att vidta en alternativ kod för att få fram rätt övergångsmatris P.  
+
+
+# Uppgift 1.1 (a-d)
+För uppgift 1.1 ska vi räkna ut övergångssannolikheterna för två dagar, en vecka, två veckor och tre månader fram i tiden givet att vi idag (måndag) har en felfri kaffeautomat det vill säga att automaten befinner sig i tillstånd 5. Detta kommer ske med mpow()-funktionen där vi väljer att förändra inputen n så att n intar värdena n = {2, 7, 14, 90} och sedan sammanställas i en tabell genom att använda bla data.frame(), cbind() och kable(). 
+```{r}
+df <- data.frame(Tid = c("På ondag", "Om en vecka",
+                         "Om två veckor", "Om tre månader"))
+df <- cbind(df, rbind(mpow(A = P, n = 2)[6,], mpow(A = P, n = 7)[6,], mpow(A = P, n = 14)[6,], mpow(A = P, n = 90)[6,])) 
+names(df)[-1] <- paste0("Tillstånd ", 0:5)
+knitr::kable(df, digits = 4, caption = "Tabell 1.1: Övergångssannolikheterna för n = {2,7,14,90} givet start i tillstånd 5")
+
+```
+Sidokommentar: Outputen och indexeringen [6, ] för övergångssannolikheterna vid olika tidsövergångar, givet i = 5, verkar stämma då samtliga radvektorer uppfyller villkoret att kunna summeras till 1 = 100%. Denna egenskaper har sin grund i lagen om total sannolikhet för hela utfallsrummet {0,5}. Vi valde att inte lägga till och presentera ytterligare kodning eller tabellrader för att påvisa en radsumma som är lika med 100% för alla olika n-värden då vi anser att det skulle vara för mycket av ett sidospår från laborationsinstruktionerna.   
+
+# Uppgift 1.2(a-d)
+För uppgift 1.2 ska vi räkna ut sannolikhetsfördelningen för tre dagar, en vecka, två veckor, tre månader fram i tiden givet att automaten startar vid tillståndet 3. Deluppgiften kommer att lösas och presenteras på samma sätt som vi valde att göra i 1.1 dvs mha mpow() och tabeller där vi väljer att förändra inputen av n så att n intar värdena n = {3, 7, 14, 90}.
+```{r}
+df <- data.frame(Tid = c("På torsdag", "Om en vecka",
+                         "Om två veckor", "Om tre månader"))
+df <- cbind(df, rbind(mpow(A = P, n = 3)[4,], mpow(A = P, n = 7)[4,], mpow(A = P, n = 14)[4,], mpow(A = P, n = 90)[4,])) 
+names(df)[-1] <- paste0("Tillstånd ", 0:5)
+knitr::kable(df, digits = 4, caption = "Tabell 1.2: Övergångssannolikheterna för n = {3,7,14,90} givet start i tillstånd 3")
+```
+Sidokommentar: Utfallet och dess indexering [4, ] får även här en korrekt radsumma på 1 = 100%. Av samma anledning som ovan väljer vi att enbart kommentera informationen utan någon specifik redogörelse. Anledningen bakom indexeringen [6, ] för uppgift 1.1 och indexeringen [4, ] för uppgift 1.2 fick vi från Laboration 1: Irreducibla Markovkedjor (skribent: Benjamin Kjellson, datum: 2016-05-26, sida: 4) där det klargjordes i sista stycket hur man kommer åt specifika kolumner, rader och/eller matriselement genom just indexering. 
+
+Sannolikheterna avrundas till fyra stycken decimaler för båda deluppgifterna genom att använda argumentet ”digit=4” i funktionen kable() i R-biblioteket knitr enligt laborationsinstruktionerna. 
+
+Vid analys av Tabell 1.1 och Tabell 1.2 ser vi hur övergångssannolikheterna i radvektorerna visar tydliga tecken på konvergens vid stigande n-värden, tydligast är det när n = 14 och n = 90. Dennaa konvergens råder för båda tabellerna, alltså sker konvergensen både för starttillstånd i = 5 och starttillstånd i = 3. Konvergensegenskaper för övergångsmatrisen innebär att samtliga radvektorer är lika och positiva, per definition blir det att samtliga element i respektive kolumnvektor är identiska. En andra konvergensegenskap är att övergångssannolikheterna i matrisen blir oförändrade vid stigande n efter konvergens. (Hänvisning till stycket "kantnotering" för rubrik "Definiera funktioner för laboration 1")
+
+Radvektorn för Tabell 1.1 och radvektorn för Tabell 1.2 när n = 14 är väldigt snarlika men vid vissa övergångar skiljer sig sannolikheterna åt. Tex är ${p}_{5,1} = 0.0258$ medan ${p}_{3,1} = 0.0260$ eller att ${p}_{5,5} = 0.2719$ medan ${p}_{3,5} = 0.2722$. Det finns därmed tydliga tendenser för konvergens men villkoren med d = 4 decimalers noggrannhet är vid n = 14 ännu inte uppfylld. 
+
+Radvektorn för Tabell 1.1 och radvektorn för Tabell 1.2 när n = 90 är däremot identiska för alla övergångssannolikheter vilket tyder på att matrisen är konvergerad och att processen nu är helt oberoende till starttillståndet. Min tolkning av tabell 1.1 och 1.2 är att matrisen P kommer anses vara konvergerad med d = 4 decimalers noggrannheten för något n-värde inom intervallet av n = 14 och n = 90. Detta kommer undersökas i deluppgift 2a. 
+
+Tillståndet i startpunkten för P går för samtliga rader i en specifik kolumn så vi valde att indexera outputen från mpow() till kolumnen som överensstämmer med starttillståndet. Eftersom tillståndsskalan för kaffeautomaten inkluderar värdet noll, men R bara kan indexera från 1, blir det att starttillstånd i = 5 motsvarar radnummer 5+1=6 och starttillståndet i = 3 motsvarar radnummer 3+1=4 vid bla indexering. 
+
+Slutsatsen att indexera för raden är pga $P\left({x}_{n+1}=j \mid {x}_{n}=i\right)=p_{i j}$ där vi ser hur betingande startillståndet istället omvandlas till radnumret inom övergångsmatrisen P. Medan beslutet att använda sig av flertalet matrismultplikationer är pga $\mathbb{P}^{(n+m)}=\mathbb{P}^{(n)} \mathbb{P}^{(m)}$ således en mer matematiskt represenation av Rosengrens 3.2 Definition i Klassificering av tillstånd (Föreläsning 3, sida: 1).
+
+
+# Uppgift 2a
+För 2a ska vi med hjälp av en repeat-loop se hur stort n måste vara för att matrisen P ska anses vara konvergerad. En matris anses vara konvergerad när övergångsmatrisen för n är approximativt ekvivalent övergångsmatrisen för n+1 dvs $\mathbf{P}^{n} \approx \mathbf{P}^{n+1}$. I detta avseende är det med d = 4 decimalers noggrannhet på direktiv av laborationsinstruktioner.
+
+Inom repeat-loppen så loopar vi genom ett if-statement som testar matriserna för två stycken konvergensegenskaper och för varje loop som villkoren inte anses vara uppfyllda forsätter loopen medan vi adderar aktuella n-värdet med konstanten 1. 
+
+Första konvergensegenskapen som testas i if-statement är att samtliga element inom en matris är förändrad vid ytterligare en matrismultiplikation, således egenskapen att $\mathbf{P}^{n} \approx \mathbf{P}^{n+1}$. Detta sker med hjälp av matrices_equal(A, B, d) och detta villkor anses vara uppfyllt när funktionen returnerar TRUE. Både A och B matrisen härstammar från matris P men vad som skiljer A- och B-matrisern åt är att att B-matrisen innehåller övergångar en tidsenhet mer jämfört med A-matrisen. Andra egenskapen är att alla radvektorer är identiska inom matrisen A vilken studeras mha rows_equal() och när dessa två egenskaper returnerar TRUE så ställs loopen inför ett break-statement för att ta sig ut från loopen. (Hänvisning till stycket "kantnotering" för rubrik "Definiera funktioner för laboration 1")
+
+Repeat-loopen och konvergens-funktionen returnerar det minsta n-värdet där båda villkoren är uppfyllda och därefter använder vi det n-värdet som input i mpow() och presenterar resultatet i en tabell. För att tydliggöra är det alltså aktuella n-värdet som sätts i rotation och uppdateras vid varje loop och där n-värdet vid varje loop agerar som input, antingen indirekt eller direkt, för mpow(), matrices_equal() och rows_equal(). 
+```{r}
+konvergens <- function(x = P, d = 4) { 
+  n <- 1
+  A <- c()
+  B <- c()
+  
+  repeat{ 
+    A <- mpow(P, n) 
+    B <- mpow(P, n+1)
+    if ( matrices_equal(A, B, d) ==TRUE & rows_equal(A, d) == TRUE) {break} 
+    n <- n + 1 
+  }
+  return(n) 
+}
+df1 <- data.frame(n = c(konvergens())) 
+df <- cbind(df1, rbind(mpow(P, konvergens())[1,1:6])) 
+names(df)[-1] <- paste0("Tillstånd ", 0:5) 
+knitr::kable(df, digits = 4, caption = "Tabell 2a: Konvergerad övergångsvektor med fyra decimalers noggrannhet")
+
+```
+Sidokommentar: När vi tar ut det minsta n-värdet som uppfyller båda villkoren valde vi att indexera för [1,1:6] således för starttillstånd i = 0 och hela tillståndsrummet {0,1,2,3,4,5} som sluttillstånd. Indexeringen för första raden gjordes slumpmässigt då som tidigare nämnt är alla radvektorer identiska inom matrisen sätt till d = 4 decimalers noggrannhet så samma output skulle ske för alla andra radnummer. Att ta ut enbart en rad var i enlighet med laborationsinstruktionerna. Även här verkar indexeringen stämma då samtliga element inom radvektorn summeras upp till 1 = 100% och ger grund för lagen om total sannolikhet. (Mer om total sannolikhet och indexering finns inom stycket "Sidokommentar" för rubrik "Uppgift 1.1")
+
+
+Övergångsmatrisen P kan med d = 4 decimalers noggrannhet omvandlas till en konvergerad övergångsmatris $\mathbf{P}^{n}$ där ${n = 20}$ enligt nedan: 
+$$
+\lim _{n \rightarrow \infty} P^{n}= P^{20} ≈ P^{21} = \left[\begin{array}{cccccc}
+0.0026 & 0.0259 & 0.1166 & 0.3109 & 0.272 & 0.272 \\
+0.0026 & 0.0259 & 0.1166 & 0.3109 & 0.272 & 0.272 \\
+0.0026 & 0.0259 & 0.1166 & 0.3109 & 0.272 & 0.272 \\
+0.0026 & 0.0259 & 0.1166 & 0.3109 & 0.272 & 0.272 \\
+0.0026 & 0.0259 & 0.1166 & 0.3109 & 0.272 & 0.272 \\
+0.0026 & 0.0259 & 0.1166 & 0.3109 & 0.272 & 0.272 \\
+\end{array}\right] 
+$$
+Sidokommentar: Eftersom att övergångsmatrisen P uppfyllde villkoret om att ha identiska radvektorer med d = 4 noggrannhet inom repeat-loopen när n = 20 kunde vi fyllda ut resterande rader i matrisen genom just den egenskapen för konvergerad matris. Enligt konvergerad övergångsmatris är det enkskilda starttillståndet inte längre av betydelse, sannolikheten att processen har j = 3 som sluttilstånd är störst med 0.3109 = 31.09 % medan sannolikheten att processen har j = 0 som sluttillstånd är längst med 0.0026 = 0.26 %. Dessa och alla andra sluttillstånd kommer vara densamma vid n > 20 för de första fyra decimalerna.   
+
+
+# Uppgift 2b
+För uppgift 2b ska vi hitta en stationär fördelning för kaffeautomaten Markovkedja genom att lösa ekvationsystemet som räknas till Sats 4.1 i Introduction to Probabilty Models (Author: Sheldon Ross, 2019-03-09, 12th Edition, page: 218). Lösningen för Uppgift 2b består främst av två huvuddelar. Första delen består av att omskriva Satsen 4.1 där vi framför varje steg vid omskrivning. Omskrivningen sker innan vi låter koden ta över. Andra delen består av självaste funktionen stationaritet() och dess output presenteras enligt en radvektor. Funktionen har fått namnet stationaritet() med funktionsargumentet ”matrix” där funktionsargumentet är satt default till matrix = P. 
+
+Eftersom alla tillstånd kommunicerar med varandra ( irreducibel Markovkedjan ), kedjan är aperiodisk samt att kedjan har ett ändligt tillståndsrum kan vi förvänta oss en unik stationär fördelning för kaffeutomatens markovkedja. S.Ross 4.1 Sats för stationära fördelningen använder $\pi$ & matris P och kan definieras enligt nedan:
+
+$$
+\pi=\pi P
+$$
+Ovanstående uttryck väljer vi att omvandla enligt nedan lättare tas över av kodningen:
+$$
+\pi =\pi P \\
+\pi - \pi P= 0 \\
+\pi I - \pi P= 0 \\
+\pi( I - P) = 0 \\
+(I-P)^{T}\pi^{T}=0 \\
+$$
+Efter att vi omvandlat orginalsatsen 4.1 behöver vi sätta upp en begränsning för $\pi$ sannolikhetsfördelning som ska summeras upp till 1 = 100%. Då detta är en linjär begränsning kan vi lägga till en rad med 1:or till faktorn $(I-P)^{T}$ som är i vänsterledet och även lägga till en 1:a som ett sista element till noll-vektorn i högerledet. Nu finns det möjlighet för koden att ta över omvandlad 4.1 Satsen: 
+```{r}
+stationaritet <- function(matrix = P) {
+  A <- rbind( t(matrix - diag(nrow(matrix))), c(rep(1, times = 6)))
+  b <- c(rep(0, times = 6), 1)
+  return(qr.solve(A, b))
+}
+stationaritet() 
+```
+
+och koden printar ut att den stationära fördelningen för kaffeautomaten markovkedja är
+$$
+\pi_{0} = 0.002590674, \pi_{1} = 0.025906736, \pi_{2} = 0.116580311, \pi_{3} = 0.310880829, \pi_{4} = 0.272020725, \pi_{5} = 0.272020725 
+$$
+Sidokommentar: Anledningen till varför vi valde att sätta matrix = P som ett default-värde är då vi önskar att studera kaffeautomatens markovkedja utifrån ett ekvationssystem i matris- och vektorform. Något som matrisen P beskriver. Vi valde dessutom att skapa en kodfunktion till lösningen för att lättare kunna komma åt lösningen om så behövdes längre fram i laborationen, vilket det visade sig göra i Uppgift 4b.  
+
+Sidokommentar II: S.Ross 4.1 sats innehåller även egenskapen att vektorelementen ska kunna summeras upp till värdet 1 = 100%. Dvs att $\sum_{j} \pi_{j}= 1$ vilket outputen i detta fall gör då vi i omvandlingen av 4.1 Satsen inkluderade en begränsning för $\pi$ sannolikhetsfördelning.  
+
+Som tidigare sagt kunde vi förvänta oss en unik stationär fördelning och det innebär att fördelningen är densamma för efterföljande tidpunkter och övergångar efter att fördelningen blivit stationär. Utifrån stationära fördelningen kan vi förvänta oss att Markovkedjan kommer att spendera mest tid i tillstånd 3 och därefter i tillstånd 4 och tillstånd 5 som har samma sannolikhet 0.272020725 = 27.2020725 %. Viktigt att notera hur stationär fördelningen innebär en efterföljande konstant fördelning och inte stationärt tillstånd. 
+
+
+# Uppgift 3 
+För uppgift 3 ska vi undersöka hur statistik över tillstånd och stationära fördelningen från uppgift 2 förhåller sig till varandra. Saken kommer undersökas genom att simulera en utveckling som startar vid tillstånd 5 och pågår i n = 1000 dagar. simulera_kedja() är den funktionen som kommer simulera utvecklingen och har funktionsargumenten starttillstånd ”x”, antalet dagar ”n” och en övergångsmatris ”P”. Funktionsargumenten är alla satta till följande defualt-värden: x = 5, n = 1000, P = P där starttillståndet x sträcker sig från 0 till antalet rader i P minus 1. 
+
+Kodningen bakom simulera_kedja() kommer från ”Simulering av diskreta Markovkedjor” (Author: Benjamin Kjellson, date: 2016–04–13, Heading: Ett mer generellt fall, page: 3-4). Resultatet från simuleringen illustreras i ett stapeldiagram mha barplot() och dess argument (xlab, ylab och main) för att inkludera lämpliga rubriker på axlarna och diagrammet. 
+```{r}
+gen_sim <- function(x = 5, P = P) { 
+  
+  u <- runif(1)
+  y <- 0 
+  test <- P[x+1, 1]
+  
+  while (u > test) {
+
+    y <- y + 1
+    
+    test <- test + P[x + 1, y + 1]
+  }
+  y
+}
+
+set.seed(1)
+
+simulera_kedja <- function(x = 5, n = 1000, P = P) {
+  
+  results <- numeric(n + 1)
+  
+  results[1] <- x
+  
+  for (i in 2:n) {
+    results[i] <- gen_sim(results[i - 1], P) 
+    }
+    
+  results[-1]
+}
+
+results2 <- simulera_kedja(x = 5, n = 1000, P = P)
+
+barplot(table(results2), xlab = "Tillstånd", 
+        ylab = "Antal",
+        main = "1000 simuleringar av en Markovkedja")
+```
+I koden inför vi indexeringen av [x + 1, y + 1] för övergångsmatrisen eftersom att vi har tillstånd som sträcker sig från 0 till nrow(P)-1 medan indexeringen för vektorn börjar med 1 för R vilket gör att vi måste addera raden och kolummen med 1 i koden ovan. (Hänvisning till näst sista stycket för rubrik "Uppgift 1.2" och även "Simulering av diskreta Markovkedjor" av B. Kjellson). simulera_kedja() använder sig av hjälpfunktionen gen_sim() för att simulera utvecklingen för varje [y+1] i den diskreta Markovkedjan. 
+
+Outputen visar hur många gånger kedjan befunnit sig i respektive tillstånd och frekvensen av varje tillstånd stämmer bra överens med radvektorn $\pi$ i uppgift 2 där processen spenderar mest tid vid tillstånd 3 och näst mest tid för tillstånd 4 och 5 även här. Största skillnaden är att $\pi_{4} = pi_{5}$ för radvektorn i uppgift 2 men inte i stapeldiagrammet. Det här visar på hur simulering med stora n-värden $\lim _{n \rightarrow \infty}$ konvergerar starkt mot teorin om stationäritet men med en inkluderad avvikelse/felterm. 
+
+
+# Uppgift 4 
+För Uppgift 4 ska vi undersöka övergångssannolikheten att om maskinen idag är i tillstånd 5 vad sannolikheten då är att komponenten igår var i tillstånd 1. Först genom ett rent empiriskt perspektiv och sedan genom ett mer teoretiskt perspektiv. 
+
+
+# Uppgift 4a 
+Deluppgift 4a grundar sig i det empiriskt perspektivet där vi hjälp av simulera_kedja() och resultatet från simuleringen i Uppgift 3. Den betingade sannolikhetsfunktionen som studeras är:
+$$
+P(X_{n-1} = 1 \mid X_{n} = 5 )=\frac{P(X_{n-1} = 1 \cap X_{n} = 5)}{P(X_{n} = 5 )}
+$$
+Enligt laborationsinstruktionerna valde vi att kolla på antalet gånger som komponenten var i tillstånd 5 där det föregås med en dag att komponenten var i tillstånd 1. Detta antal divideras med totala antalet gånger som processen var i tillstånd 5 oberoende av föregående tillstånd för att lyckas få en andel istället för ett antal. Täljaren för funktionen är alltså den simulatans täthetsfunktionen medan nämnaren är marginalfördelningen för tillstånd 5.  
+
+Vi tog fram den simultana sannolikhetsfunktionen genom att använda oss av en for-loop, ett if-statement och en initialt tom vektor vid namn ”nyavektorn”. If-statement returnerar TRUE när tillstånd 1 varpå tillstånd 5 och detta sker genom indexering av simuleringsvektorn från uppgift 3, annars FALSE. I for-loopen indexerar vi alltså för olika index-värden "i" genom (i <- i + 1) inom intervallet av {1, 1000}. nyavektorn blir nu en logical-vektor innehållande bara TRUE och FALSE. Slutligen kollar vi antalet TRUE i nyavektorn och dividerar det talet med antalet gånger som simuleringsvektorn från uppgift 3 innehöll tillstånd 5 genom bla subset().
+
+```{r}
+
+nyavektorn <- c()
+
+set.seed(1)
+
+for ( i in seq(1, length(results2))) {
+  
+  results2 <- as.vector(results2) 
+  
+  i <- i + 1
+  
+  if ( results2[i] == 5 & results2[i-1] == 1 ) {nyavektorn[i] <- TRUE 
+  } else { nyavektorn[i] <- FALSE}
+  
+}
+
+Taljare <- length(subset(nyavektorn, nyavektorn == TRUE)) # 9 gånger 
+
+Namnare <- length(subset(results2, results2 == 5)) # 256 gånger
+
+Kvoten <- Taljare / Namnare # 9 / 256
+
+Kvoten # 0.03515625
+```
+Enligt simuleringen är sannolikheten 0.03515625 = 3.515625% att processen vid förgående tillfälle befann sig i tillstånd 1 givet att processen idag befinner sig i tillstånd 5. Resultatet kan definieras som $P\left(X_{n-1}=1 \mid X_{n}=5\right)= 0.03515625 = 3.515625 %$. 
+
+
+# Uppgift 4b 
+Här ska vi lösa deluppgfit 4b med ett mer teoretiskt tillvägagångssätt genom att använda oss av resultatet från den stationära fördelningen i Q2 och Bayes formeln. Värden från radvektorn $\pi$ i Q2 kommer i enlighet med Bayes formeln att bilda en produkt tillsammans med övergångssanolikheten i täljaren och stå ensam i nämnaren.  
+
+Vi använder oss av Bayes formeln till den betingade sannolikheten för att kunna ta del av värden från övergångsmatrisen P samt värden från stationära fördelningen. För att fullborda Bayes formeln behöver vi mer specifikt övergångssanolikheten ${p}_{1,5} = 0.4$, $\pi_{1}  =  0.0259067$ och $\pi_{5}  =  0.2720207$ vilket ger: 
+$$
+P(X_{n-1} = 1 \mid X_{n} = 5) =\frac{P(X_{n} = 5 \mid X_{n-1} = 1) P(X_{n-1} = 1)}{P(X_{n} = 5)} = \frac{p_{1,5}* 0.0259067 }{0.2720207} = \frac{0.4* 0.0259067 }{ 0.2720207} = 0.03809519
+$$
+och dett ger grund för följande kodning (För tanken bakom index hänvisas läsaren till näst sista stycket för rubrik "Uppgift 1.2")
+```{r}
+( P[2,6] * stationaritet()[2] ) / stationaritet()[6]
+```
+Sannolikheten att maskinen igår befann sig i tillstånd 1 givet att komponenten idag är i tillstånd 5 är lika med $ P(X_{n-1} = 1 \mid X_{n} = 5) = 0.03809519 $ för det mer teoretiska tillvägagångssättet. Som beskrivits ovan tog vi sannolikheter från stationära fördelningen för vardera tillstånd vilket blev P(Xn = 1) = 0.02590674 och P(Xn = 5) = 0.2720207 som slogs ihop genom Bayes formel. 
+
+Slutkommentar för Uppgift 4: Svaret för empirisk metod blev 0.03515625 medan svaret för teoretisk metod blev 0.03809519. Enligt mig är avvikelsen minimal vilket tyder på att resultatet från simuleringen i Q3 stämmer bra överens med teorin för stora n-värden. Vi förväntade oss ett snarlikt resultat mellan de två deluppgifterna då vi använde oss av n = 1000, stort n-värde, vilket överstiger n > 20. Markovkedjan visade tydliga tendenser för konvergens redan vid n = 20 för Uppgift 1.1 och Uppgift 1.2. Fastän simulering stämmer bra överens med teorin för stort n finns det inte sällan en avvikelse till teorin eftersom simuleringen fortfarande innehåller en slumpmässighet vid testerna.       
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

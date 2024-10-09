@@ -1,0 +1,463 @@
+---
+title: 'Laboration 3: Födelse-dödsprocesser'
+author: "Nabiel Efrem"
+date: '2022-04-25'
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+# Introduktion av laborationen 3
+Målet för laboration 3 är att undersöka datorn i institutionen för experimentell ekonomi. Processen för antalet jobb som tillkommer och avvecklas från datasystemet beskrivs i laboration 3 som en Markovkedja i en kontinuerlig tid (Markovprocess), mer specifikt en födelse och dödsprocess med tillståndetrummet S = {0,1,2,3}. 
+
+Laboration 3 består av 6 st huvuduppgifter och där vi genom laborationen bla kommer definiera datasystemet och simulera Markovprocessen med fokus på tex antalet tillståndsändringar, starttillståndet och intensitetsparameterna. Bortsett från detta kommer vi även se till tidsfördelning av olika tillstånd för den simuleringsprocessen och dra slutsatser utifrån Institutionsstyrelsens preferenser / önskemål. I uppgift 1 kommer vi definiera systemet och Markovprocessen för läsaren att få lite mer förståelse kring födelse och dödsprocessen, samt processens egenskaper. 
+
+
+# Uppgift 1
+I uppgift 1 ska vi med ord och symboler lyckas beskriva det systemet som definierar denna födelse-dödsprocess. Efter att system definieras ska vi få med tiden för nästa tillståndsbyte inkluderat vissa fördelningsantaganden och sannolikheten för att processen går upp eller ner ett steg med respekt till processen nutida tillstånd, vilket vi tänkt göra med att härleda en övergångsmatris från en intensitetsmatris. Slutligen ska vi applicera de generella parametrarna $\lambda$ och $\mu$ specifikt för förslag 1, dvs då enbart professorer har tillgång till servern vilket ger parametervärderna $\lambda = 2$ och $\mu = 10$ 
+
+Denna födelse- och dödsprocess definieras bäst av $\mathbf{ M/M/1/2}-systemet$, ett kösystem där första M:et antar poissonfördelade ankomster medan andra M:et antar exponentialavveckling. 1:an i systemdefinitionen är den specifika avvecklingsfördelningen som i detta fall är en enhet eftersom servern enbart kan exekvera ett jobb i taget och att ett nytt jobb kan ankomma om den servern är ledig. 2:an innebär att upp till två stycken jobb kan lagras i buffertminnet utan att jobbet förloras ur systemet och sänder ett felmeddelande till användaren. 
+
+Sidokommentar: Med hänvisning till Laboration 3: Födelse-dödsprocesser (Author: Benjamin Kjellson, heading: Bakgrund, date: 2016-05-26, page: 2) använder vi aktuell födelse- dödsprocess för att simulera ett fiktivt datorsystem vid institutionen för experimentell ekonomi. Datorn ifråga tar sig, för denna laboration, an beräkningstunga jobb för exekvering. Datorsystemet har delats in i två områden där första är servern, 1 enhet, och andra är buffertminne, minne för 2 enheter jobb. Tillståndsområdet sträcker sig från 0 enheter till 3 enheter för datorsystemet beroende på om datorn är full eller tom, samtliga tillstånd däremellan beror på antalet enheter jobb i datorn. Eftersom buffertminnet är begränsat till två enheter jobb är därmed även kön begränsat till 2 enheter för processen. 
+
+Intensiteterna för markovkedjan och $\mathbf{ M/M/1/2}-systemet$ kan ge uttryck i en intensitetsmatris Q där födelseintensiteten har parametern {$\lambda$} att processen är med om tillståndsövergången (n—>n+1) för samtliga n inom intervallet av S = {0, 1, r-1 = 2} = {0,1,2} för {$\lambda_{i}$}. Dödsintensiteten i denna process har parametern {$\mu$} vilket beör processövergången (n —> n-1) för samtliga n inom intervallet av S ={1, 2, r = 3} = {1,2,3} för {$\mu_{i}$} och enligt sida 2 på Laboration 3: Födelse-dödsprocesser (Author: Benjamin Kjellson, heading: Bakgrund, date: 2016-05-26) medföljer antagandet att båda parameterna ({$\lambda$} och {$\mu$}) är tidshomogena/stationära för alla olika starttillstånd i processen. Utifrån denna information och det totala utfallsrummet S = {0,1,2,r = 3} = {0,1,2,3} kan nedanstående intensitetsmatris tas fram:
+
+$$
+\mathbf{Q}=\left(\begin{array}{ccccc}
+-\lambda & \lambda & 0 & 0  \\
+\mu& -\left(\lambda +\mu \right) & \lambda & 0  \\
+0 & \mu &  -\left(\lambda +\mu \right) & \lambda &  \\
+0 & 0 & \mu& -\mu  \\
+\end{array}\right)
+$$
+$q_{ij} = q_{0,0}$ = {$-\lambda$} där processen enbart mots av födelseintensiteten då området för dödsintensiteten inte sträcker sig till tillstånd 0 vilket gör att dödsintensiteten vid tillstånd 0 är lika med $\mu = 0$. Ekvation för intensiteten vid tillstånd noll kan alltså beskrivas med  $-( \lambda +  \mu ) = -\lambda$. Samtidigt som dödsintensiteten inte sträcker sig till tillstånd 0 så sträcker sig inte födelseintensiteten till det sista tillståndet för Markovprocessen, r = 3. Detta gör att att födelseintensiteten är lika med noll vid tillstånd 3 och ekvationen för intensiteten vid tillstånd 3 kan alltså beskrivas med $-(\lambda +  \mu )$ = $-\mu$ för matriselement $q_{ij} = q_{3,3}$ med (4x4) i dimension.
+
+Sidokommentar: Intensitetsmatrisen $\mathbf{Q}$ är en matris med antalet dimensionerna som stämmer överens med antalet tillstånd i tillståndsrummet. Av denna anledning får vår intensitetsmatrisen $\mathbf{Q}$  matrisdimensionen (4x4). Datorn tar sig an ett jobb och avvecklar ett jobb i taget vilket gör att tilltåndsändringen enbart sker med tillståndsökning med en enhet eller tillståndsminskning med en enhet. Matriselementen där radnumret och kolumnnumret avviker med mer än en enhet i absolut termer blir elementet lika med noll. Dessa egenskaper kring markovprocessen / FD-processen beskriver den mesta delen av intensitetsmatrisens utformning. 
+
+Från intensitetsmatrisen $\mathbf{Q}$ lyckades vi derivera fram övergångsmatrisen genom att ta det av formeln $\tilde{p}_{i j}=\frac{q_{i j}}{q_{i}}, \quad i \neq j$ samt $\tilde{p}_{i i}= 0$ för att således skapa övergångsmatrisen $\widetilde{\boldsymbol{P}}=\left(\tilde{p}_{i j}\right)_{i, j \in \boldsymbol{E}}$ enligt nedan:
+
+$$
+\mathbf{P}=\left(\begin{array}{ccccc}
+0 & \lambda  / \lambda & 0 & 0  \\
+\mu / \left(\lambda +\mu \right) & 0 & \lambda/ \left(\lambda +\mu \right)  & 0  \\
+0 & \mu / \left(\lambda +\mu \right)  &  0 & \ \lambda/ \left(\lambda +\mu \right) &  \\
+0 & 0 & \mu /\mu & 0  \\\end{array}\right) = \left(\begin{array}{ccccc}
+0 & 1 & 0 & 0  \\
+\mu / \left(\lambda +\mu \right) & 0 & \lambda/ \left(\lambda +\mu \right)  & 0  \\
+0 & \mu / \left(\lambda +\mu \right)  &  0 & \ \lambda/ \left(\lambda +\mu \right) &  \\
+0 & 0 & 1 & 0  \\\end{array}\right)
+$$
+där övergångsmatrisen $\mathbf{P}$ har egenskapen att radsumman är lika med 1 för samtliga rader då $\sum_{i} p_{ij} = 1$ och det gäller för samtliga rader i övergångsmatrisen. Övergångsmatrisen för Markovkedjan i kontinuerlig tid ser till övergångssannolikheten att processen är med om en tillståndsökning eller tillståndsminskning. Huvuddiagonalen för övergångsmatrisen är lika med noll eftersom att övergångssannolikheten vid kontinuerlig tid blir att en tillståndsändring enbart noteras när processen antar ett nytt tillstånd och inte är kvar på samma tillstånd (latent annars). 
+
+Sidokommentar: Både ankomster och avlägsnades av jobb sker enligt poissonfördelningen med intensiteterna ($\mu$ och $\lambda$) vilket medföljer att tiden som tas för en tillståndsändring vare sig det är en tillståndsökning eller minskning är exponentialfördelad med parametern ( $\mu$ + $\lambda$ ) alltså ~Exp($\mu$ + $\lambda$) under förutsättning av identiska och lika fördelade.
+
+
+# Uppgift 2
+För uppgift 2 ska vi fyllda i kodskelettet för bd_process() som vi blivit tilldelade på sida 3 i Laboration 3: Födelse-dödsprocesser (Author: Benjamin Kjelsson, date: 2016-05-26). Enligt laborationsinstruktionerna ska kodskelettet vara inventerad, dvs ha olika många mellanslag beroende på “nivån” i koden och där den ifyllda ska kunna simulera en födelse- och dödsprocess med egenskaperna för Uppgift 1. 
+
+Sidokommentar: Funktionen bd_process() simulerar processen med respekt till funtionsargurmenten $\lambda$ och $\mu$ samt starttillstånd för processen vilket är default satt till "initial_state = 0" och slutligen antalet steg/tillståndsändringar innan processen avbryts vilket är default satt till $"steps = 100"$. Simuleringen fortgår fram tills att antalet steg är gjorda och därefter stoppas simuleringen av födelse-dödsprocessen, där antalet ”steps” kan ses som övre gränsen av vektorn/sekvensen vilket tillåter loopade mha for(var in seq). Notera att processen har fokus på antalet ”steps” och tar inte hänsyn till att processen ska återgå till starttillståndet, dvs starttillståndet och sluttillståndet behöver nödvändigtvis inte överensstämma efter ”steps = ” antal tillståndsändringar är utförda. 
+
+```{r}
+
+bd_process <- function(lambda, mu, initial_state = 0, steps = 100) {
+  
+  # Time_now och state_now definieras redan här innan processen ingår i for-loopen. Time_now och state_Now ger grunden för
+  # parametervärderna lambda_now och mu_now där dessa ställs med två stycken if-statements beroende på om processen är i 
+  # extremtillståndet eller inte. 
+  
+  time_now <- 0
+  state_now <- initial_state
+  
+  # Dessa vektorer ska byggas på inom loopen nedan
+  time <- 0
+  state <- initial_state
+  
+  for (i in 1:steps) {
+    
+    # Som en sekvens från 1 upp till ”steps” ställs processen varje gång för ett if-statement där
+    # man kollar på processens aktuella stillstånd S. Ifall processen befinner sig i aktuellt tillstånd
+    # state_now = 3 innebär det att systemet är fullsatt och inget nytt jobb kan matas in till
+    # systemet. Födelseintensiteten för komponenten är då att aktuella lambda = 0. Annars är det ledigt
+    # utrymme i systemet för datorn att ta sig an nytt jobb med intensiteten lambda. Detta är 
+    # alltså ett statement för födelseintensiteten för det övre extremfallet.
+    # Hänvisning till Intensitetsmatrisen Q som går att hitta i "Uppgift 1"
+    
+
+  if (state_now == 3) { 
+    lambda_now <- 0
+  } else {
+    lambda_now <- lambda
+  }
+    
+    # Här ställs processen inför ett if-statement där man ser ifall processens aktuella tillstånd vid det specifika
+    # ”steget” är lika med noll eller inte. Om aktuella tillståndet state_now == 0 innebär det att systemet för datorn är
+    # totalt ledig, finns varken jobb i kön eller servern, och det finns utrymme för nya jobb men det finns inga jobb att 
+    # avlägsna från datorn och därmed sätts den aktuella dödsintensiteten mu = 0 när state_now == 0. Annars finns det jobb att
+    # avlägsna vilket sker med intensiteten mu. Detta är alltså ett statement för dödsintensiteten för det nedre
+    # extremfallet. Hänvisning till Intensitetsmatrisen Q som går att hitta i "Uppgift 1"
+
+  if (state_now == 0) { 
+    mu_now <- 0
+  } else { 
+    mu_now <- mu
+  }
+  
+    # time_to_transition() motsvarar tiden det tar för processen att vara med om en tillståndsändring. Tiden för
+    # tillståndsändring tas fram genom att använda sig av fördelningen ~ exp(lambda + mu) som medför med hänvisning
+    # till Föreläsning 8 (author: Rosengren, heading: Exponentialfördelningen och Poissonprocessen, page: 1) ger ett
+    # väntevärde på E(Y) = (lambda + mu)^(-1). Tiden tas fram genom att man generar ett slumptal mha log(runif(1)) till
+    # väntevärdet för exp(λ + μ) och eftersom outputen / tiden för tillståndsändring måste vara positivt väljer vi att
+    # införa abs()-kommandot till kodningen.
+    
+    time_to_transition <- (mu_now + lambda_now)^(-1)*(abs(log(runif(1)))) 
+    
+    
+    # Här ställer vi upp ett if-statement med villkor gällande sannolikheten för tillståndsändringen. Om sannolikheten
+    # för att avlägsna ett jobb är större än sannolikheten att får ett nytt jobb så minskar det aktuella tillståndet med
+    # en enhet (qn,n-1). Annars, om sannolikheten att få ett nytt jobb överstiger sannolikheten att avlägsna ett jobb så
+    # ökar det aktuella tillståndet med en enhet (qn,n+1). Vi generar alltså en slumpsannolikhet med respekt till
+    # intensitetsparameterar mu_now och lambda_now. Vi valde att omvandla villkoret så att det villkoret bara
+    # innehåller ett runif-kommando istället för två stycken. 
+    
+    # Sidkommentar:
+    # Om sannolikheten för att avsluta ett jobb är större än sannolikheten för nytillkommet jobb är det aktuella
+    # tillståndet med om tillståndsändringen state_now <- state_now -1. Om sannolikheten för att avsluta ett jobb är
+    # mindre än sannolikheten  för nytillkommet jobb är det aktuella tillståndet med om tillståndsändringen
+    # state_now <- state_now +1. 
+    
+  if ( (mu_now + lambda_now)*runif(1) < mu_now) {
+    state_now <- state_now - 1
+  } else {
+    state_now <- state_now + 1
+  }
+    
+    # time_now() är en vektor som innehåller summan av tiden mellan tillståndsändringar och time_now() börjar med
+    # noll tidsenheter genom  time_now() <- 0 i inledningsskedet av kodskelettet. Vektorn uppdateras med
+    # time_to_transition för varje steg i simuleringen vilket skapar en kumulativ tidsvektor mellan tillståndsändringar upp till "steps="
+    # stycken tillståndsändringar.
+  
+  time_now <- time_now + time_to_transition 
+  
+  # time() är en vektor där sista elementet är värdet på time_now() för det sista elementet alltså det den sista tiden mellan 
+  # tillståndsändringen. 
+  
+  time <- c(time, time_now)
+  
+  # state() är en vektor där elementen är olika tillstånd i tillståndsrummet för komponenten. Tillståndet har framkommit i den sekvens som
+  # resulterats från simuleringen av födelse och dödsprocessen. 
+  
+  state <- c(state, state_now)
+  
+  }
+  
+  # Returnera en lista med de två vektorerna tid och state
+  
+  list(time = time, state = state) 
+}
+```
+
+
+# Uppgift 3
+För uppgift 3 ska vi rita upp ett simulerat trappstegsdiagram för samtliga tre förslag. Förslagen har alla samma mu-värde på mu = 10 medan lambda-värdet skiljer sig åt mellan förslagen. Förslag 1 har λ = 2, Förslag 2 har λ = 6 och förslag 3 har λ = 10. Vi kommer använda oss av bd_process()-funktionen där funktionsinput steps är default satt till steps = 100 och funktionsinput initial_state är defualt satt till initial_state = 0. 
+
+Tillvägagångssättet för att få fram trappstegsdiagrammet grundar sig mest på funktionsskelettet för att hämta ut vektorerna tid & state samt plotfunktion med aktuella argument. Skelettet går att hitta i  ”Laboration 3: Födelse-dödsprocesser” (Author: Benjamin Kjellson, date: 2016-05-26, page: 3-4) och utifrån detta skelettet är det tänkt att vi ska skapa en generell funktion för olika parametervärden för att spara tid och minska risken för fel. Direktiv från stycket "Viktig lärdom" på sida 4 i ”Laboration 3: Födelse-dödsprocesser”.
+
+### Generella funktion för simulerat trappstegsdiagram med "forslag" som funktionsargument 
+```{r}
+
+forslagsfunktionen <- function(forslag, info = bd_process, steg = 100) {
+  
+  set.seed(19990421)
+  
+  fodelseintensitet <- c(2,6,10)
+  
+  dodsintensitet <- c(10, 10, 10)
+  
+  forslagmodell <- info(lambda = fodelseintensitet[forslag], mu = dodsintensitet[forslag], steps = steg)
+  
+  return(forslagmodell)
+}
+```
+
+### Simulerat trappstegsdiagram för forslag = 1 
+```{r}
+time1 <- forslagsfunktionen(forslag = 1)$time
+state1 <- forslagsfunktionen(forslag = 1)$state
+
+plot(stepfun(time1[-1], state1), 
+     do.points = FALSE,
+     xlab = "Tid (timmar h)",
+     ylab = "Tillstånd",
+     main = "Diagram 1. Simulerat trappstegsdiagram för förslag 1",
+     yaxt = "n")
+
+axis(2, at = c(0, 1, 2, 3), las = 2)
+
+```
+
+### Simulerat trappstegsdiagram för forslag = 2 
+```{r}
+time2 <- forslagsfunktionen(forslag = 2)$time
+state2 <- forslagsfunktionen(forslag = 2)$state
+
+plot(stepfun(time2[-1], state2), 
+     do.points = FALSE,
+     xlab = "Tid (timmar h)",
+     ylab = "Tillstånd",
+     main = "Diagram 2. Simulerat trappstegsdiagram för förslag = 2" ,
+     yaxt = "n")
+
+axis(2, at = c(0, 1, 2, 3), las = 2)
+```
+
+### Simulerat trappstegsdiagram för forslag = 3 
+```{r}
+time3 <- forslagsfunktionen(forslag = 3)$time
+state3 <- forslagsfunktionen(forslag = 3)$state
+
+plot(stepfun(time3[-1], state3), 
+     do.points = FALSE,
+     xlab = "Tid (timmar h)",
+     ylab = "Tillstånd",
+     main = "Diagram 3. Simulerat trappstegsdiagram för förslag = 3",
+     yaxt = "n")
+
+axis(2, at = c(0, 1, 2, 3), las = 2)
+```
+
+Vi kan tydligt se hur Diagram 1, Diagram 2 och Diagram 3 avviker från varandra. Diagram 1 som berör förslag 1 befinner sig i tillstånd 0 och tillstånd 1 mesta delen av tiden. Detta är på grund av av att datorn avvecklar jobb i en högre intensitet än vad det tillkommer nya jobb. Den simultana markovprocessen befinner sig i tillstånd s = 2 vid ett fåtal tillfällen av samtliga 100 st tillståndsändringar vilket medför att en marginell andel av den totala tiden spenderas i tillstånd s = 2 och en ännu mindre andel av den totala tiden i tillstånd s = 3.
+
+För förslag 2 med lambda = 6 och mu = 10 är dödsintensiteten fortfarande högre än födelseintensiteten men den relativa intensiteten mellan intensitetsparameterna är inte lika stor som för förslag 1. Vilket innebär att datorsystemet för detta förslag avvecklar arbete i en högre intensitet än vad nya jobb tillkommer men skillnaden är mindre än för förslaget innan. För markovprocessen gällande förslag 2 kretsar processen störst andel tid inom tillstånd s=1 och tillstånd s=2, men sålunda mindre inom s=0 och s=3. För förslag 3 viktar sig processen mot tillstånd 2 och tillstånd 3 mesta delen av totala tiden för steps = 100 st steg/tilståndsändringar.
+ 
+Den horisontala axeln för diagrammen innehåller tiden som krävs (angivet i timmar) för processen att vara med om steps = 100 st steg/tillståndsändringar. Förutom viktande av diagrammets olika tillstånd ser vi att tiden det tar för förslag 1 att vara med om 100 tillståndsändringar överstiger tiden för  förslag 2 och tiden för förslag 3 att vara med om lika många tillståndsändringar. Som beskrivits i "Uppdrag 1" i sista stycket (Sidokommentar) ser vi hur tiden det krävs för processen att vara med om en tillståndändring oavsett om det är en tillståndökning  (n —> n+1) eller tillståndsminskning  (n —> n-1) är ~Exp($\mu$ + $\lambda$). Av denna anledning blir det att tiden för varje tillståndsändring när lambda = 2 och mu = 10 är längre än tiden för varje  tillståndsändring när lambda = 6 och mu = 10 samt lambda = 10 och mu = 10. 
+
+
+
+# Uppgift 4
+För uppgift 4 ska vi simulera tiden det tar för processen att vara med om 500 st tillståndsändringar vilket sker med att använda funktionsargumentet steps = 500 för alla tre förslagen. Samtliga tre förslagen går att hitta på sida 2 i Laboration 3: Födelse-dödsprocesser (author: Benjamin Kjellson, date: 2016-05-26 ). 
+
+Sidokommentar: Enligt laborationsinstruktionerna ska vi inte presentera något diagram utan enbart jämföra tiderna mellan förslag 1, förslag 2 och förslag 3 samt förklara anledningen till resultatet. Av denna anledning har vi valt att framföra en tabell med tre rader, en för varje förslag, och dess simulerande tid för "step" = 500. Vi valde att avrunda tiderna till lämpliga antal decimaler genom round() och ”digit = 0” på direktiv av laborationsinstruktionerna. 
+```{r}
+
+time1s <- forslagsfunktionen(forslag = 1, info = bd_process, steg = 500)$time
+time2s <- forslagsfunktionen(forslag = 2, info = bd_process, steg = 500)$time
+time3s <- forslagsfunktionen(forslag = 3, info = bd_process, steg = 500)$time
+
+Tidtabellen <- data.frame("Antalet tim steps=500" = c(round(time1s[length(time1s)]),  
+                                                                            round(time2s[length(time2s)]),
+                                                                            round(time3s[length(time3s)])))
+
+rownames(Tidtabellen) <- c("Förslag 1 med lambda = 2 och mu = 10", 
+                           "Förslag 2 med lambda = 6 och mu = 10", 
+                           "Förslag 3 med lambda = 10 och mu = 10" )
+
+Tidtabellen
+
+```
+
+Tiden det tar för markovprocessen att vara med om steps = 500, st tillståndsändringar, skiljer sig åt mellan förslagen som vi ser i tabellen ovan. Tiden det tar för förslag 1 att vara med om 500 st tillståndsändringar är 122 timmar medan tiden det tar för förslag 2 och förslag 3 att vara med om lika många tillståndsändringar är 46 timmar respektive 34 timmar där resultaten har tagits fram genom simulering.
+
+För att studera varför tiden för steps = 500 st tillståndsändringar skiljer sig åt mellan förslagen bör vi notera vad som skiljer förslagen åt. Det är födelseintensiteten som skiljer förslagen åt och sålunda även den relativa intensiteten för förslagen. Eftersom väntetiden för tillståndsändring är exponentialfördelad med parametern (lambda + mu) blir det att när en eller båda intensitetsparameterna ökar så minskar tiden för en tillståndsändring. Vilket sker i enlighet med exponentialfördelningen och dess väntevärde. Eftersom mu är oförändrad mellan förslagen medan lambda ökar från 2 till 6 och slutligen till 10 resulterar det i att förslag 3 kräver minst simulerad tid av samtliga föreslag (1-3) för att vara med om ett bestämt antal tillståndsändringar. 
+
+
+
+# Uppgift 5
+Uppgift 5 delas upp i två stycken deluppgifter, del 1 och del 2 med fokus på att skapa och tillämpa funktioner för födelse- och dödsprocesser. 
+
+### Uppdrag 5 del 1 
+För uppgift 5 del I ska vi skapa en funktion vid namn proportion_in_state() som har ett tillstånd ”s” och en simulerad födelse- dödsprocess ”bdp” som funktionsargument och returnerar andelen tid som processen spenderade i det givna tillståndet. 
+
+Sidokommentar: Det är viktigt att notera hur fördelningen returnerar en tidfördelning och inte tidsenheter. Vi har valt att ta del av kodmallen som går att finna på sida 5 i Laboration 3: Födelse-dödsprocesser (Author: Benjamin Kjellson, date: 2016-05-26) och uppgift 5(I) ska vi fyllda i kodmallen medan uppgift 5(II) tar sig användning av proportion_in_state(). 
+```{r}
+
+proportion_in_state <- function(s, bdp) {
+  
+  state <- bdp$state
+  
+  time <- bdp$time
+  
+  time_in_s = 0 
+  
+  total_time = time[1]
+  
+  if (state[1] == s) {
+    
+    time_in_s = time[1]
+    
+  } 
+  
+  for ( i in seq(2,length(state)-2) ) {
+    
+    total_time = total_time + time[i] - time[i-1]
+    
+    if (state[i] == s) {
+      
+      time_in_s = time_in_s + time[i+1] - time[i]
+    }
+  
+  }
+  return(time_in_s / total_time)
+}
+```
+Tips: Bortse från det sista elementet i tillståndsvektorn, eftersom ingen tid spenderats i det sista tillståndet processen hoppade till vilket gör att vi kan subtrahera antalet steg/tillståndsändringar med konstanten 1 alternativt subtrahera längden på state-vektorn med konstanten 2. 
+
+### Uppdrag 5 del II 
+För uppgift 5 del II ska vi använda oss av proportion_in_state()  som skapades i uppgift 5 del I. Vi inför bd_process på nytt med steps = 1000 för vardera förslag och där vi räknar på hur stor andel av den totala tiden som tillbringats i tillstånd 0, 1, 2 och 3 vid förslag 1, förslag 2 och förslag 3. Utfallet kommer bli en (3x4) matris där vi har förslagen som radnamn och tillstånden som kolumnnamn. 
+
+Sidokommentar: Utifrån de olika värderna i matriselementen (3x4) ska vi slutligen avgöra vilket eller vilka förslag (1-3) som är acceptabla för institutionsstyrelsen där institutionsstyrelsen har beslutat att högst 5% av alla jobb som skickas till datorn ska behöva få ett felmeddelande som sker när bufferten är fylld. ( Hänvisning till Laboration 3: Födelse-dödsprocesser, Author: Benjamin Kjellson, date: 2016-05-26, page: 2 )   
+```{r}
+
+nyamatrix <- matrix(ncol = 4, nrow = 3)
+
+nyamatrix[1:3,1] <- c(proportion_in_state(s = 0, bdp = forslagsfunktionen(forslag = 1, info = bd_process, steg = 1000)),
+                      proportion_in_state(s = 0, bdp = forslagsfunktionen(forslag = 2, info = bd_process, steg = 1000)),
+                      proportion_in_state(s = 0, bdp = forslagsfunktionen(forslag = 3, info = bd_process, steg = 1000)))
+
+nyamatrix[1:3,2] <- c(proportion_in_state(s = 1, bdp = forslagsfunktionen(forslag = 1, info = bd_process, steg = 1000)),
+                      proportion_in_state(s = 1, bdp = forslagsfunktionen(forslag = 2, info = bd_process, steg = 1000)),
+                      proportion_in_state(s = 1, bdp = forslagsfunktionen(forslag = 3, info = bd_process, steg = 1000)))
+
+nyamatrix[1:3,3] <- c(proportion_in_state(s = 2, bdp = forslagsfunktionen(forslag = 1, info = bd_process, steg = 1000)),
+                      proportion_in_state(s = 2, bdp = forslagsfunktionen(forslag = 2, info = bd_process, steg = 1000)),
+                      proportion_in_state(s = 2, bdp = forslagsfunktionen(forslag = 3, info = bd_process, steg = 1000)))
+
+nyamatrix[1:3,4] <- c(proportion_in_state(s = 3, bdp = forslagsfunktionen(forslag = 1, info = bd_process, steg = 1000)),
+                      proportion_in_state(s = 3, bdp = forslagsfunktionen(forslag = 2, info = bd_process, steg = 1000)),
+                      proportion_in_state(s = 3, bdp = forslagsfunktionen(forslag = 3, info = bd_process, steg = 1000)))
+
+df <- data.frame(Forslag = c("Förslag 1 med lambda = 2 och mu = 10",
+                             "Förslag 2 med lambda = 6 och mu = 10",
+                             "Förslag 3 med lambda = 10 och mu = 10"))
+
+df <- cbind(df, rbind(nyamatrix)) 
+names(df)[-1] <- paste0("Tillstånd ", 0:3)
+knitr::kable(df, digits = 4, caption = "Tabell: Andelen av den totala tiden för respektive tillstånd och förslag med steg = 1000")
+```
+
+Tabellen visar andelen tid som processen befann sig i respektive tillstånd för varje förslag och om vi kollar på "Tillstånd 3" kan vi se hur stor andel av tiden som systemet var fullt. Förslag 1 var fullt belastad ungefär 0.51% av den totala tiden vilket uppfyller instrituionens krav på 5% sannolikhet för ett felmeddelande. För förslag 2 var systemet fullt ca 9.3% av den totala tiden medan förslag 3 fick systemet att vara fullt ca 21.59% av totala nyttjandetiden. 
+
+Institutionsstyrelsens krav var att buffereten ska vara full högst 5% av tiden och det kravet uppfyller enbart förslag 1 där endast professorer har tillträde medan resterande översteg kravete på 5% således är enbart förslag 1 acceptabelt för institutionsstyrelsen. 
+
+Sidokommentar: Värt att notera är att fastän styrelsen krav på 5% är uppfyllt kan det anses vara en viss ineffektivitet då bufferten och datasystemet väldigt sällan använder sin fulla kapacitet inom den totala drifttiden. 
+
+
+# Uppdrag 6
+För uppgift 6 ska vi ange en formel för den stationära fördelningen som funktion av trafikintensiteten $\rho=\frac{\lambda}{\mu}$. Stationära fördelningen ska bestämmas för vardera förslag (1-3) angivet i siffror, inte symboler, i form av en tabell likt presentationen för Uppgift 5. Slutligen ska vi rekommendera Institutionsstyrelsen för vilken av de förslagen (1-3) som är mest lämplig att införa för institutionen. Eftersom vi ska studera uppehållstiden för respektive tillstånd vid varje förslag (1-3) är det viktigt att betona hur trafikintensiteten $\rho=\frac{\lambda}{\mu}$ förändras mellan alla olika förslagen. 
+
+Sannolikheten att befinna sig i tillstånd $E_{n}$ för $n={0,1,2,3}$ är symboliserad med $P_{n}$ där processen har intensiteten $\lambda$ att vid nästa tidsenhet befinna sig i ett högre tillstånd och har intensiteten $\mu$ att vid nästa tidsenhet befinna sig i ett längre tillstånd. Med hänvisning till Definition 5.2 och Lemma 5.2 i Introduction to Probabilty Models (Author: Sheldon Ross, 2019-03-09, 12th Edition, page: 317) får vi följande två stycken sannolikhetsfunktioner, första sannolikhetsfunktionen då n = 0 och andra sannolikhetsfunktionen då $n\ge 1$ dvs i detta fall då $n = {1,2,3}$ enligt nedan: 
+
+Sannoliket för tillstånd $E_{0}$ för n=0: $P_{n_{0}}(t+\bigtriangleup t) = P_{0}(t+\bigtriangleup t) =P_{n_{0}}(t)\left[1-\lambda_{n_{0}} \bigtriangleup t-0(\bigtriangleup t)\right]$
+
+Sannolikhet för tillstånd $E_{n}$ för $n = {1,2,3}$: $\begin{aligned} P_{n}(t+\bigtriangleup t)=P_{n-1}(t)[\lambda_{n-1} \bigtriangleup t+o(\bigtriangleup t)] +P_{n}(t)[1-\lambda_{n} \bigtriangleup t-o(\bigtriangleup t)] \end{aligned}$ 
+
+
+För sannolikhetsfunktionen gällande tillstånd n=0 blir det att vi inte inkluderar termen för avveckling då vi befinner oss i tillstånd n = 0 vilket skiljer sig åt från den andra sannolikhetsfunktionen, som berör tillståndet $n\ge 1$ där inkluderar avvecklingstermen. Dessa två stycken sannolikhetsfunktioner kan omvandlas genom att dividera respektive funktion med $\bigtriangleup t$ och låta $\bigtriangleup t \to 0$. Enligt nedan deriverar vi båda sannolikhetsfunktionerna, börjar med funktionen för $n\ge 1$ och sedan för funktionen n=0: 
+
+$P_{n}^{\prime}(t)=\lim _{\bigtriangleup t \rightarrow 0} \frac{P_{n}(t+ \bigtriangleup t )-P_{n}(t)}{\bigtriangleup t }  =\lambda P_{n-1}(t)-(\lambda + \mu)P_{n}(t) + \mu P_{n+1}(t)$
+
+$P_{n_{0}}^{\prime}(t)= P_{0}^{\prime}(t) =  \lim _{\bigtriangleup t \rightarrow 0} \frac{P_{0}(t+ \bigtriangleup t )-P_{0}(t)}{\bigtriangleup t }  =-\lambda P_{0}(t) + \mu P_{1} (t)$
+
+
+På grund av egenskaperna skiljer sig åt beroende på om vi studera n = 0 eller n = {1,2,3} har vi genomgående delat upp deriveringen mellan dessa två olika tillståndsklasser och även för Kolomogorov axiom ska den summerande sannolikheten för samtliga tillstånd inom tillståndsrummet summeras tilll 1 = 100%. Ekvationerna kan förenklas ytterligare, förenklig av kolomogorov ekvationer, där vi börjar med att förenkla sannolikheterna för tillstånd $E_{n}$ då n = {1,2,3} och sist extremfallet när n = 0. 
+
+Egenskaperna skiljer sig åt beroende på om vi studerar n=0 eller $n\ge 1$ och således har vi delat upp sannolikhetsfunktioneran och deriveringen i två olika tillståndsklasser. Den summerande sannolikheten ska summeras upp till 1 = 100% vilket kommmer ligga till grund för att lösa termen av $P_{0}$. Nedan ställer vi upp balansekvationerna i ett balansekvationssystem, där födelse och dödsintensiten för varje tillstånd överenstämmer med varandra inom tillståndssrummet $n={0,1,2,3}$: 
+
+$$
+\begin{array}{l}
+\lambda_{0} P_{0}=\mu_{1} P_{1} \\
+\lambda_{1} P_{1}=\mu_{2} P_{2} \\
+\lambda_{2} P_{2}=\mu_{3} P_{3}
+\end{array}
+$$
+
+Balansekvationssystemet kan lösas så att vi får sannolikhetsfunktioner för varje tillstånd $E_{n}$ för $n={0,1,2,3}$ i termer av $P_{0}$ enligt följande: 
+$$
+\begin{array}{c}
+P_{1}=\frac{\lambda_{0}}{\mu_{1}} P_{0} \\
+P_{2}=\frac{\lambda_{1}}{\mu_{2}} P_{1}=\frac{\lambda_{1} \lambda_{0}}{\mu_{2} \mu_{1}} P_{0} \\
+P_{3}=\frac{\lambda_{2}}{\mu_{3}} P_{2}=\frac{\lambda_{2} \lambda_{1} \lambda_{0}}{\mu_{3} \mu_{2} \mu_{1}} P_{0}=\Pi_{i=1}^{3}\left(\frac{\lambda_{i-1}}{\mu_{i}}\right) P_{0}
+\end{array}
+$$
+
+Sannoliketsfunktioerna har alla $P_{0}$ som term i funktionen och vi kan lösa sannolikhetsfunktionen för $P_{0}$ genom dess egenskap att samtliga sannolikhetsfunktioner inom tillståndsrummet ska kunna summeras till en total sannolikhet, dvs att $\sum_{i=0}^{3} P_{i} = 1$ för datorn i  institutionen för experimentell ekonomi. Utifrån denna egenskap och att denna födelse- och dödsprocess är stationär blir intensiteterna $\lambda_{i} = \lambda$ och att $\mu_{i} = \mu$ kan $P_{0}$ förenklas enligt nedan: 
+
+$1 = P_{0} + P_{1} +  P_{2} +  P_{3}$
+
+$1 = P_{0} + \frac{\lambda_{0} }{\mu_{1}}P_{0}  +  \frac { \lambda_{1} \lambda_{0} } {\mu_{2} \mu_{1} }P_{0} +  \frac {\lambda_{2}\lambda_{1}\lambda_{0} } {\mu_{3} \mu_{2} \mu_{1} } P_{0}$
+
+$1 = P_{0} (1 + \frac{\lambda_{0} }{\mu_{1}} +  \frac { \lambda_{1} \lambda_{0} } {\mu_{2} \mu_{1}} +   \frac {\lambda_{2}\lambda_{1}\lambda_{0} } {\mu_{3} \mu_{2} \mu_{1} })$
+
+$P_{0} = \frac{1 }{1 +  \sum_{i=1}^{3} ( \frac{\lambda}{\mu})}$ under antagandet att processen är tidshomogen/stationär. 
+
+Nu när vi har ekvationerna och egenskaperna defineirade för olika tillståndssannolikheter är det på tid att inkludera trafikintensiteten $\rho = \frac {\lambda}{\mu}$ i enligthet med laborationinstruktionerna. Vid det specifika fallet då $\lambda = \mu$ resulterar det i att trafikintensiteten är lika med $\rho = \frac {\lambda}{\mu}| _{\lambda = \mu} = 1$ och att uppbehållstiden sträcker sig jämt mellan respektive tillstånd i tillståndsrummet när $\lambda = \mu$. Detta blir aktuellt för förslag 3. 
+
+Sannolikheten att processen befinner sig i förslag "i" och tillstånd "j" slås samman i en matris(3x4) och där sannolikheten tas fram från den geometriska fördelningen. Med hänvisning till Introduction to Probabulty models (author: Sheldon M. Ross, page: 397-398) kan sannolikhetsfunktionen för samtliga n beskrivas enligt: $P_{n} = \frac { ( \lambda / \mu )^{n}} { 1 + \sum_{n=1}^{\infty} ( \lambda / \mu )^{n}} = (\frac{\lambda}{\mu})^{n} (1-\frac{\lambda}{\mu})$ för $\rho = \frac {\lambda}{\mu}$ och samtliga $n\ge 0$. Denna sannolikhetsfunktionen använder vi nedan för respektive förslag där vi börjar med förslag 1 och försätter med förslag 2 och 3.  
+
+Sannolikheten för respektive tillstånd för förslag 1:
+$$
+\begin{array}{c}
+\rho=\frac{\lambda}{\mu}=\frac{2}{10} \\
+P_{0}=1-\rho=0.8013 \\
+P_{1}=\rho P_{0}=0.1603 \\
+P_{2}=(\rho)^{2} P_{0}=0.0321 \\
+P_{3}=(\rho)^{3} P_{0}=0.0064
+\end{array}
+$$
+
+Sannolikheten för respektive tillstånd för förslag 2:
+$$
+\begin{array}{c}
+\rho=\frac{\lambda}{\mu}=\frac{6}{10} \\
+P_{0}=1-\rho=0.4596 \\
+P_{1}=\rho P_{0}=0.2757 \\
+P_{2}=(\rho)^{2} P_{0}=0.1654 \\
+P_{3}=(\rho)^{3} P_{0}=0.0993
+\end{array}
+$$
+
+Sannolikheten för respektive tillstånd för förslag 3 med en annan metodik:  
+$$
+\begin{array}{c}
+\rho=\frac{\lambda}{\mu}=\frac{10}{10}=1 \\
+P_{j}=\frac{\rho^{3}}{1+3 \rho} \text { för } \text { alla } j=\{0,1,2, N=3\} \text { givet } \rho=1 \\
+P_{j}=\frac{1}{N+1}=\frac{1}{1+3}=\frac{1}{4}=0.25 \text { för alla } j=\{0,1,2, N=3\} \text { givet } \rho=1
+\end{array}
+$$
+
+
+vilket ger grund för följande kodning och output:
+```{r} 
+
+Forslag <- 3 # antalet förslag
+Tillstand <- 4 # antalet tillstånd
+IntenMatris <- matrix(0, ncol = Tillstand, nrow = Forslag, byrow = TRUE)
+
+
+# Förslag 1 & trafikintensitet 
+Trafikint <- 2/10
+IntenMatris[1, ] <- Trafikint^(seq(0,3)) * ( 1- Trafikint) / ( 1- Trafikint^(Forslag+1))
+
+
+# Förslag 2 & trafikintensitet 
+Trafikint <- 6/10
+IntenMatris[2, ] <- Trafikint^(seq(0,3)) * ( 1- Trafikint) / ( 1- Trafikint^(Forslag+1))
+
+
+# Förslag 3 & trafikintensitet ( annorlunda method är trafikintensiteten p = 1 )
+Trafikint <- 10/10
+IntenMatris[3, ] <- Trafikint^(seq(0,3)) / (3+1) 
+
+df1 <- data.frame("Förslag" = c("Förslag 1 med lambda = 2 och mu = 10","Förslag 2 med lambda = 6 och mu = 10", "Förslag 3 med lambda = 10 och mu = 10"))
+
+df <- cbind(df1, rbind(IntenMatris[1,],IntenMatris[2,], IntenMatris[3,]))
+names(df)[-1] <- paste0("Tillstånd ", 0:3) 
+knitr::kable(df, digits = 4, caption = "Tabell 2: Stationära fördelningen med respekt till förslagens (1-3) olika trafikintensiteter")
+
+```
+Tabellen ovan visar den stationära fördelningen för respektive förslag och denna tabell har ungefär samma värden som tabellen i "Uppgift 5, del II". Värderna överensstämde mest för förslag 1 och förslag 2 mellan "Tabell: Andelen av den totala tiden steps = 1000" och "Tabell 2" och största värdeskillnaden var för förslag 3 där trafikintensiteten motsvarade $\rho=1$ vilket krävde en annan metod än för resterade sannolikhetsfunktioner. I sin helhet ser det ut som att andelen tid i ett specifikt tillstånd mellan förslagen konvergerar mot den stationära fördelningen vid stigande tillståndsändringar.   
+
+Sannolikheten att ett jobb inkommer när bufferten är full och användaren får ett felmeddelande går att hitta under rubrik "Tillstånd 3" för varje förslag. I tabellen kan vi se att sannolikheten att användaren är med om ett felmeddelande för förslag 1 motsvarar 0.0064 = 0.64 %. Denna procentskattning understiger institutionsstyrelsens krav att 5% av alla jobb som skickas till datorn ska råkas ut för ett felmeddelande vilket när ett nytt jobb kommer in när bufferten är full. Medan sannolikheten att avsändaren är med om ett felmeddelande för förslag 2 motsvarar 0.0993 = 9,93% vilket överstiger institutionsstyrelsens krav på max 5%. Förslag 3 med en födelseintensitet på lambda = 10 och en dödsintensitet på mu = 10 ger en sannolikhet för felmeddelande till avsändaren på  0.25 = 25% vilket signifikant överstiger institutionsstyrelsens krav. 
+
+Sidokommentar: Förslag 1 är det enda förslaget som uppfyller institutionsstyrelsens krav medan Förslag 2 och Förslag 3 inte gör det men värt notera är att kravet baserar sig ebart på risken för ett felmeddelande givet att bufferten är full. Med parameter-intensiteterna för Förslag 1 är det väldigt sällan, enbart 0.64% av totala tiden, som datorsystemet använder sin fylla kapacitet vilket kan anses vara en ineffektiv användning av systemet. 
+
